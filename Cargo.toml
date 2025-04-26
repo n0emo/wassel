@@ -19,6 +19,8 @@ hyper-util = { version = "0.1.11", features = ["tokio"] }
 matchit = "0.8.6"
 thiserror = "2.0.12"
 tokio = { version = "1.44.2", features = ["full"] }
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 wasmtime = { git = "https://github.com/bytecodealliance/wasmtime", features = ["component-model"] }
 wasmtime-wasi = { git = "https://github.com/bytecodealliance/wasmtime" }
 wasmtime-wasi-http = { git = "https://github.com/bytecodealliance/wasmtime" }

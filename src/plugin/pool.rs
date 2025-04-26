@@ -1,6 +1,7 @@
 use std::{ffi::OsStr, sync::Arc};
 
 use dashmap::DashMap;
+use tracing::{debug, error, info};
 use wasmtime::{Engine, component::Linker};
 
 use super::{http::HttpPlugin, state::State};
@@ -30,6 +31,10 @@ struct PoolInner {
 
 impl PluginPool {
     pub async fn new(config: &PoolConfig) -> anyhow::Result<Self> {
+        info!("Loading plugins");
+        let mut successes = 0;
+        let mut errors = 0;
+
         let engine = {
             let mut config = wasmtime::Config::new();
             config.async_support(true);
@@ -56,12 +61,14 @@ impl PluginPool {
                 continue;
             }
 
+            debug!("Loading {plugin:?}", plugin = module.path());
             let bytes = std::fs::read(module.path())?;
 
             let plugin = match HttpPlugin::load(&bytes, &engine, &mut linker).await {
                 Ok(p) => p,
                 Err(e) => {
-                    eprintln!("Error loading plugin {path:?}: {e}", path = module.path());
+                    error!("Error loading plugin {path:?}: {e}", path = module.path());
+                    errors += 1;
                     continue;
                 }
             };
@@ -73,7 +80,10 @@ impl PluginPool {
             }
 
             map.insert(plugin.name().to_owned(), Arc::new(plugin));
+            successes += 1;
         }
+
+        info!("Loaded {successes} plugins with {errors} errors");
 
         Ok(Self(Arc::new(PoolInner {
             map,

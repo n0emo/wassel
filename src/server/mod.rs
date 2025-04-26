@@ -2,6 +2,7 @@ use hyper::server::conn::http1;
 use hyper_util::rt::{TokioIo, TokioTimer};
 use service::WasselService;
 use tokio::net::TcpListener;
+use tracing::{error, info};
 
 use crate::plugin::{PluginPool, PoolConfig};
 
@@ -18,11 +19,10 @@ impl Server {
     }
 
     pub async fn serve(&self) -> anyhow::Result<()> {
-        println!("Loading plugins");
         let pool = PluginPool::new(&PoolConfig::default()).await?;
         let service = WasselService::new(pool);
 
-        println!("Starting server");
+        info!("Starting server");
         let listener = TcpListener::bind("127.0.0.1:9150").await?;
 
         loop {
@@ -37,7 +37,7 @@ impl Server {
                     .serve_connection(io, service)
                     .await
                 {
-                    println!("Error serving: {e}");
+                    error!("Error serving: {e}");
                 }
             });
         }
