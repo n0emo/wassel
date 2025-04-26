@@ -3,7 +3,7 @@ use std::{ffi::OsStr, sync::Arc};
 use dashmap::DashMap;
 use wasmtime::{Engine, component::Linker};
 
-use super::{HttpPlugin, state::State};
+use super::{http::HttpPlugin, state::State};
 
 pub struct PoolConfig {
     pub plugins_directory: String,
@@ -17,6 +17,7 @@ impl Default for PoolConfig {
     }
 }
 
+#[derive(Clone)]
 pub struct PluginPool(Arc<PoolInner>);
 
 #[allow(unused)]
@@ -71,7 +72,7 @@ impl PluginPool {
                     .unwrap();
             }
 
-            map.insert(plugin.descriptor.name.clone(), Arc::new(plugin));
+            map.insert(plugin.name().to_owned(), Arc::new(plugin));
         }
 
         Ok(Self(Arc::new(PoolInner {

@@ -2513,6 +2513,7 @@ dependencies = [
  "hyper",
  "hyper-util",
  "matchit",
+ "thiserror 2.0.12",
  "tokio",
  "wasmtime",
  "wasmtime-wasi",

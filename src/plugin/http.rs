@@ -1,27 +1,23 @@
 use std::ops::DerefMut as _;
 
 use bindings::exports::wassel::plugin::http_plugin;
-use hyper::{body::Incoming, Request, Response};
+use hyper::{Request, Response, body::Incoming};
 use tokio::sync::{Mutex, MutexGuard};
 use wasmtime::{
     Engine, Store,
     component::{Component, Instance, Linker},
 };
+use wasmtime_wasi_http::{
+    WasiHttpView as _, bindings::http::types::Scheme, body::HyperOutgoingBody,
+};
 
-mod bindings;
-mod pool;
-mod state;
+use super::{PluginHandleError, bindings, state::State};
 
-use state::State;
-pub use pool::{PluginPool, PoolConfig};
-use wasmtime_wasi_http::{bindings::http::types::Scheme, body::HyperOutgoingBody, WasiHttpView};
-
-#[allow(unused)]
 pub struct HttpPlugin {
-    instance: Instance,
-    component: Component,
+    _instance: Instance,
+    _component: Component,
     store: Mutex<Store<State>>,
-    bindings: bindings::Plugin,
+    proxy: bindings::Plugin,
     descriptor: http_plugin::Plugin,
     handler_map: matchit::Router<http_plugin::Handler>,
 }
@@ -54,40 +50,50 @@ impl HttpPlugin {
         }
 
         Ok(Self {
-            instance,
-            component,
+            _instance: instance,
+            _component: component,
             store: Mutex::new(store),
             descriptor,
-            bindings,
+            proxy: bindings,
             handler_map,
         })
     }
 
-    pub async fn handle(&self, req: Request<Incoming>) -> Response<HyperOutgoingBody> {
+    pub async fn handle(
+        &self,
+        req: Request<Incoming>,
+    ) -> Result<Response<HyperOutgoingBody>, PluginHandleError> {
         let (sender, reciever) = tokio::sync::oneshot::channel();
         let route = req.uri().path();
-
 
         let mut store_guard = self.store.lock().await;
         let mut store = MutexGuard::deref_mut(&mut store_guard);
         let handler = *self
             .handler_map
             .at(route)
-            .unwrap_or_else(|_| panic!("No handler for route {route}"))
+            .map_err(|_| PluginHandleError::EndpointNotFound(route.to_owned()))?
             .value;
 
-        let req = store.data_mut().new_incoming_request(Scheme::Http, req).unwrap();
-        #[allow(unreachable_code)]
-        let out = store.data_mut().new_response_outparam(sender).unwrap();
+        let req = store
+            .data_mut()
+            .new_incoming_request(Scheme::Http, req)
+            .map_err(PluginHandleError::CreateResource)?;
 
-        self.bindings
+        let out = store
+            .data_mut()
+            .new_response_outparam(sender)
+            .map_err(PluginHandleError::CreateResource)?;
+
+        self.proxy
             .wassel_plugin_http_plugin()
             .handler()
             .call_handle(&mut store, handler, req, out)
             .await
-            .unwrap();
+            .map_err(PluginHandleError::CallingHandleMethod)?;
 
-        reciever.await.unwrap().unwrap()
+        let response = reciever.await??;
+
+        Ok(response)
     }
 
     pub fn endpoints(&self) -> impl Iterator<Item = &str> {

@@ -1,5 +1,7 @@
 use exports::wassel::plugin::http_plugin::{self, Guest, GuestHandler};
-use wasi::http::types::{Headers, IncomingRequest, OutgoingBody, OutgoingResponse, ResponseOutparam};
+use wasi::http::types::{
+    Headers, IncomingRequest, OutgoingBody, OutgoingResponse, ResponseOutparam,
+};
 
 wit_bindgen::generate!({
     world: "plugin",
