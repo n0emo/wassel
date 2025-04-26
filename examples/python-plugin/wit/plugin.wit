@@ -1,0 +1,5 @@
+package hello:plugin;
+
+world plugin {
+    include wassel:plugin/plugin;
+}

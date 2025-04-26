@@ -2,7 +2,7 @@ use hyper::server::conn::http1;
 use hyper_util::rt::{TokioIo, TokioTimer};
 use service::WasselService;
 use tokio::net::TcpListener;
-use tracing::{error, info};
+use tracing::{debug, info};
 
 use crate::plugin::{PluginPool, PoolConfig};
 
@@ -37,7 +37,7 @@ impl Server {
                     .serve_connection(io, service)
                     .await
                 {
-                    error!("Error serving: {e}");
+                    debug!("Error serving: {e}");
                 }
             });
         }
