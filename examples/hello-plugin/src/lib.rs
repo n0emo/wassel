@@ -1,4 +1,5 @@
 use exports::wassel::plugin::http_plugin::{self, Guest, GuestHandler};
+use wasi::http::types::{Headers, IncomingRequest, OutgoingBody, OutgoingResponse, ResponseOutparam};
 
 wit_bindgen::generate!({
     world: "plugin",
@@ -34,12 +35,19 @@ impl Guest for Plugin {
 }
 
 pub struct HttpHandler {
-    func: Box<dyn Fn() -> String>
+    func: Box<dyn Fn() -> String>,
 }
 
 impl GuestHandler for HttpHandler {
-    fn handle(&self) -> String {
-        (self.func)()
+    fn handle(&self, _req: IncomingRequest, out: ResponseOutparam) {
+        let res = OutgoingResponse::new(Headers::new());
+        res.set_status_code(200).unwrap();
+        let body = res.body().unwrap();
+        let stream = body.write().unwrap();
+        ResponseOutparam::set(out, Ok(res));
+        stream.write((self.func)().as_bytes()).unwrap();
+        drop(stream);
+        OutgoingBody::finish(body, None).unwrap();
     }
 }
 

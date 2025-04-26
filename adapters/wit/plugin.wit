@@ -1,33 +1,7 @@
-package wassel:plugin;
-
-interface http-plugin {
-    resource handler {
-        handle: func() -> string;
-    }
-
-    record endpoint {
-        path: string,
-        handler: handler,
-    }
-
-    record plugin {
-        /// The name of the plugin. Must be kebab-case with all letters lowercase,
-        /// e.g. "hello-plugin".
-        name: string,
-
-        /// Version of the plugin in SemVer format.
-        version: string,
-
-        /// Short description of the plugin
-        description: option<string>,
-
-        /// List of plugin endpoints
-        endpoints: list<endpoint>,
-    }
-
-    instantiate: func() -> plugin;
-}
+package hello:plugin;
 
 world plugin {
-    export http-plugin;
+    include wassel:plugin/plugin;
+
+    import wasi:http/types@0.2.3;
 }

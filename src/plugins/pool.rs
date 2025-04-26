@@ -1,9 +1,9 @@
 use std::{ffi::OsStr, sync::Arc};
 
 use dashmap::DashMap;
-use wasmtime::{component::Linker, Engine};
+use wasmtime::{Engine, component::Linker};
 
-use super::{state::State, HttpPlugin};
+use super::{HttpPlugin, state::State};
 
 pub struct PoolConfig {
     pub plugins_directory: String,
@@ -37,6 +37,7 @@ impl PluginPool {
 
         let mut linker = wasmtime::component::Linker::new(&engine);
         wasmtime_wasi::p2::add_to_linker_async(&mut linker)?;
+        wasmtime_wasi_http::add_only_http_to_linker_async(&mut linker)?;
 
         let map = DashMap::new();
         let mut router = matchit::Router::new();
@@ -46,7 +47,11 @@ impl PluginPool {
                 continue;
             };
 
-            if module.path().extension().is_none_or(|ext| ext != OsStr::new("wasm")) {
+            if module
+                .path()
+                .extension()
+                .is_none_or(|ext| ext != OsStr::new("wasm"))
+            {
                 continue;
             }
 
@@ -61,13 +66,20 @@ impl PluginPool {
             };
 
             for endpoint in plugin.endpoints() {
-                router.insert(endpoint.to_owned(), plugin.name().to_owned()).unwrap();
+                router
+                    .insert(endpoint.to_owned(), plugin.name().to_owned())
+                    .unwrap();
             }
 
             map.insert(plugin.descriptor.name.clone(), Arc::new(plugin));
         }
 
-        Ok(Self(Arc::new(PoolInner { map, engine, linker, router })))
+        Ok(Self(Arc::new(PoolInner {
+            map,
+            engine,
+            linker,
+            router,
+        })))
     }
 
     pub fn plugin_at(&self, route: &str) -> Option<Arc<HttpPlugin>> {
@@ -76,4 +88,3 @@ impl PluginPool {
         Some(Arc::clone(pair.value()))
     }
 }
-
