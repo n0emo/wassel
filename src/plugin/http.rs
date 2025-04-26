@@ -4,8 +4,7 @@ use bindings::exports::wassel::plugin::http_plugin;
 use hyper::{Request, Response, body::Incoming};
 use tokio::sync::{Mutex, MutexGuard};
 use wasmtime::{
-    Engine, Store,
-    component::{Component, Instance, Linker},
+    component::{Component, Instance, InstancePre, Linker}, Engine, Store
 };
 use wasmtime_wasi_http::{
     WasiHttpView as _, bindings::http::types::Scheme, body::HyperOutgoingBody,
@@ -13,21 +12,17 @@ use wasmtime_wasi_http::{
 
 use super::{PluginHandleError, bindings, state::State};
 
-pub struct HttpPlugin {
-    _instance: Instance,
+pub struct HttpPluginImage {
     _component: Component,
-    store: Mutex<Store<State>>,
-    proxy: bindings::Plugin,
-    descriptor: http_plugin::Plugin,
-    handler_map: matchit::Router<http_plugin::Handler>,
+    pre: InstancePre<State>,
 }
 
-impl HttpPlugin {
-    pub async fn load(
-        bytes: &[u8],
-        engine: &Engine,
-        linker: &mut Linker<State>,
-    ) -> anyhow::Result<Self> {
+impl HttpPluginImage {
+    pub fn new(component: Component, pre: InstancePre<State>) -> Self {
+        Self { _component: component, pre }
+    }
+
+    pub fn load(bytes: &[u8], engine: &Engine, linker: &mut Linker<State>) -> anyhow::Result<Self> {
         let component = Component::new(engine, bytes)?;
 
         let export = "wassel:plugin/http-plugin";
@@ -35,8 +30,14 @@ impl HttpPlugin {
             anyhow::bail!("There is no '{export}' export");
         }
 
+        let pre = linker.instantiate_pre(&component)?;
+
+        Ok(Self::new(component, pre))
+    }
+
+    pub async fn instantiate(&self, engine: &Engine) -> anyhow::Result<HttpPlugin> {
         let mut store = wasmtime::Store::new(engine, State::default());
-        let instance = linker.instantiate_async(&mut store, &component).await?;
+        let instance = self.pre.instantiate_async(&mut store).await?;
         let bindings = bindings::Plugin::new(&mut store, &instance)?;
 
         let descriptor = bindings
@@ -49,16 +50,25 @@ impl HttpPlugin {
             handler_map.insert(&endpoint.path, endpoint.handler)?;
         }
 
-        Ok(Self {
+        Ok(HttpPlugin {
             _instance: instance,
-            _component: component,
             store: Mutex::new(store),
             descriptor,
             proxy: bindings,
             handler_map,
         })
     }
+}
 
+pub struct HttpPlugin {
+    _instance: Instance,
+    store: Mutex<Store<State>>,
+    proxy: bindings::Plugin,
+    descriptor: http_plugin::Plugin,
+    handler_map: matchit::Router<http_plugin::Handler>,
+}
+
+impl HttpPlugin {
     pub async fn handle(
         &self,
         req: Request<Incoming>,

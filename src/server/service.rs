@@ -29,7 +29,7 @@ impl Service<Request<Incoming>> for WasselService {
         let s = self.clone();
 
         let future = async move {
-            let Some(plugin) = s.pool.plugin_at(req.uri().path()) else {
+            let Ok(plugin) = s.pool.get_plugin_at(req.uri().path()).await else {
                 return Ok(StatusCode::NOT_FOUND.into_response());
             };
 

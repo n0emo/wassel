@@ -4,7 +4,7 @@ use dashmap::DashMap;
 use tracing::{debug, error, info};
 use wasmtime::{Engine, component::Linker};
 
-use super::{http::HttpPlugin, state::State};
+use super::{http::{HttpPlugin, HttpPluginImage}, state::State};
 
 pub struct PoolConfig {
     pub plugins_directory: String,
@@ -23,7 +23,7 @@ pub struct PluginPool(Arc<PoolInner>);
 
 #[allow(unused)]
 struct PoolInner {
-    map: dashmap::DashMap<String, Arc<HttpPlugin>>,
+    map: dashmap::DashMap<String, HttpPluginImage>,
     engine: Engine,
     linker: Linker<State>,
     router: matchit::Router<String>,
@@ -64,7 +64,7 @@ impl PluginPool {
             debug!("Loading {plugin:?}", plugin = module.path());
             let bytes = std::fs::read(module.path())?;
 
-            let plugin = match HttpPlugin::load(&bytes, &engine, &mut linker).await {
+            let plugin = match HttpPluginImage::load(&bytes, &engine, &mut linker) {
                 Ok(p) => p,
                 Err(e) => {
                     error!("Error loading plugin {path:?}: {e}", path = module.path());
@@ -73,13 +73,15 @@ impl PluginPool {
                 }
             };
 
-            for endpoint in plugin.endpoints() {
+            let instance = plugin.instantiate(&engine).await?;
+
+            for endpoint in instance.endpoints() {
                 router
-                    .insert(endpoint.to_owned(), plugin.name().to_owned())
+                    .insert(endpoint.to_owned(), instance.name().to_owned())
                     .unwrap();
             }
 
-            map.insert(plugin.name().to_owned(), Arc::new(plugin));
+            map.insert(instance.name().to_owned(), plugin);
             successes += 1;
         }
 
@@ -93,9 +95,10 @@ impl PluginPool {
         })))
     }
 
-    pub fn plugin_at(&self, route: &str) -> Option<Arc<HttpPlugin>> {
-        let name = self.0.router.at(route).map(|m| m.value).ok()?;
-        let pair = self.0.map.get(name)?;
-        Some(Arc::clone(pair.value()))
+    pub async fn get_plugin_at(&self, route: &str) -> Result<HttpPlugin, anyhow::Error> {
+        let name = self.0.router.at(route).map(|m| m.value)?;
+        let pair = self.0.map.get(name).ok_or_else(|| anyhow::anyhow!("Could not get plugin blugin by name"))?;
+        let plugin = pair.value().instantiate(&self.0.engine).await?;
+        Ok(plugin)
     }
 }
