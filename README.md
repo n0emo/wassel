@@ -17,15 +17,17 @@ your own plugins.
 
 ## Roadmap
 
-- [ ] Support handling HTTP requests
-- [ ] Automatically spin additional plugin instances for incoming requests
+- [x] Support handling HTTP requests
+- [x] Automatically spin up additional plugin instances for incoming requests
+- [ ] Add wasi:config support
+- [ ] Add ability to configure instantiated plugin pool
 - [ ] Support for various middlewares
 - [ ] Plugin bindings for popular languages. Support for more languages will
       come later
     - [ ] Rust
-    - [ ] C/C++
-    - [ ] Go
     - [ ] Python
+    - [ ] JavaScript
+    - [ ] Go
     - [ ] C#
 - [ ] Hot-reload plugins as they are modified
 - [ ] Support for WASIp3 and concurrent instance execution

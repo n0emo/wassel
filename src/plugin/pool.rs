@@ -4,7 +4,10 @@ use dashmap::DashMap;
 use tracing::{debug, error, info};
 use wasmtime::{Engine, component::Linker};
 
-use super::{http::{HttpPlugin, HttpPluginImage}, state::State};
+use super::{
+    http::{HttpPlugin, HttpPluginImage},
+    state::State,
+};
 
 pub struct PoolConfig {
     pub plugins_directory: String,
@@ -97,7 +100,11 @@ impl PluginPool {
 
     pub async fn get_plugin_at(&self, route: &str) -> Result<HttpPlugin, anyhow::Error> {
         let name = self.0.router.at(route).map(|m| m.value)?;
-        let pair = self.0.map.get(name).ok_or_else(|| anyhow::anyhow!("Could not get plugin blugin by name"))?;
+        let pair = self
+            .0
+            .map
+            .get(name)
+            .ok_or_else(|| anyhow::anyhow!("Could not get plugin blugin by name"))?;
         let plugin = pair.value().instantiate(&self.0.engine).await?;
         Ok(plugin)
     }

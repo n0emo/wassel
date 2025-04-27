@@ -4,7 +4,8 @@ use bindings::exports::wassel::plugin::http_plugin;
 use hyper::{Request, Response, body::Incoming};
 use tokio::sync::{Mutex, MutexGuard};
 use wasmtime::{
-    component::{Component, Instance, InstancePre, Linker}, Engine, Store
+    Engine, Store,
+    component::{Component, Instance, InstancePre, Linker},
 };
 use wasmtime_wasi_http::{
     WasiHttpView as _, bindings::http::types::Scheme, body::HyperOutgoingBody,
@@ -19,7 +20,10 @@ pub struct HttpPluginImage {
 
 impl HttpPluginImage {
     pub fn new(component: Component, pre: InstancePre<State>) -> Self {
-        Self { _component: component, pre }
+        Self {
+            _component: component,
+            pre,
+        }
     }
 
     pub fn load(bytes: &[u8], engine: &Engine, linker: &mut Linker<State>) -> anyhow::Result<Self> {

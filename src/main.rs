@@ -1,7 +1,9 @@
+use config::Config;
 use server::Server;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 
+mod config;
 mod plugin;
 mod server;
 
@@ -19,7 +21,9 @@ async fn main() -> anyhow::Result<()> {
         .with_target(false)
         .init();
 
-    let server = Server::new();
+    let config = Config::load();
+
+    let server = Server::new(config);
     server.serve().await?;
 
     Ok(())
