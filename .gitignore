@@ -1,5 +1,6 @@
 target/
 ./plugins/
+config.toml
 
 *.wasm
 *.wat
