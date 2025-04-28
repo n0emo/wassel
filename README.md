@@ -19,7 +19,7 @@ your own plugins.
 
 - [x] Support handling HTTP requests
 - [x] Automatically spin up additional plugin instances for incoming requests
-- [ ] Add wasi:config support
+- [x] Add wasi:config support
 - [ ] Add ability to configure instantiated plugin pool
 - [ ] Support for various middlewares
 - [ ] Plugin bindings for popular languages. Support for more languages will
