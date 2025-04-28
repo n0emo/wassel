@@ -3,36 +3,23 @@ package wassel:plugin;
 interface http-plugin {
     use wasi:http/types@0.2.3.{incoming-request, response-outparam};
 
-    resource handler {
-        handle: func(
-            request: incoming-request,
-            response-out: response-outparam
-        );
-    }
-
     record endpoint {
         path: string,
-        handler: handler,
+        handler: string,
     }
 
-    record plugin {
-        /// The name of the plugin. Must be kebab-case with all letters lowercase,
-        /// e.g. "hello-plugin".
-        name: string,
-
-        /// Version of the plugin in SemVer format.
-        version: string,
-
-        /// Short description of the plugin
-        description: option<string>,
-
-        /// List of plugin endpoints
-        endpoints: list<endpoint>,
-    }
-
-    instantiate: func() -> plugin;
+    get-endpoints: func() -> list<endpoint>;
 }
 
 world exports {
+    include wasi:cli/imports@0.2.3;
+    include wasi:clocks/imports@0.2.3;
+    include wasi:config/imports@0.2.0-draft;
+    include wasi:filesystem/imports@0.2.3;
+    include wasi:http/imports@0.2.3;
+    include wasi:io/imports@0.2.3;
+    include wasi:random/imports@0.2.3;
+    include wasi:sockets/imports@0.2.3;
+
     export http-plugin;
 }

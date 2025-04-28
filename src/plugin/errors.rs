@@ -6,6 +6,13 @@ pub enum PluginHandleError {
     #[error("Endpoint for path '{0}' was not found in the plugin")]
     EndpointNotFound(String),
 
+    #[error("Hander export {handler} for {path} was not found in the plugin: {error}")]
+    GettingHandlerExport {
+        path: String,
+        handler: String,
+        error: wasmtime::Error,
+    },
+
     #[error("Could not create resource: {0}")]
     CreateResource(wasmtime::Error),
 

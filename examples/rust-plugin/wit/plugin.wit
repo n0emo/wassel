@@ -1,7 +1,5 @@
 package hello:plugin;
 
 world plugin {
-    include wasi:config/imports@0.2.0-draft;
-
     include wassel:plugin/exports;
 }

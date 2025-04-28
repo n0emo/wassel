@@ -26,3 +26,4 @@ wasmtime-wasi = { git = "https://github.com/bytecodealliance/wasmtime" }
 wasmtime-wasi-http = { git = "https://github.com/bytecodealliance/wasmtime" }
 wasmtime-wasi-config = { git = "https://github.com/bytecodealliance/wasmtime" }
 wit-bindgen = "0.41.0"
+toml = "0.8.21"

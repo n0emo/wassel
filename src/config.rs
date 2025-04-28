@@ -30,13 +30,28 @@ impl Config {
             return Self::default();
         };
 
-        match config.try_deserialize() {
+        let mut config = match config.try_deserialize() {
             Ok(c) => c,
             Err(e) => {
                 error!("Error reading config: {e}");
                 Self::default()
             }
+        };
+
+        for plugin in config.plugins.values_mut() {
+            match plugin.get_mut("base_url") {
+                None => {
+                    plugin.insert("base_url".to_owned(), "".to_owned());
+                },
+                Some(b) => {
+                    if b.ends_with("/") {
+                        b.pop();
+                    }
+                }
+            };
         }
+
+        config
     }
 }
 
