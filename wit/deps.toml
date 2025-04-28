@@ -1,1 +1,2 @@
 http = "https://github.com/WebAssembly/wasi-http/archive/refs/tags/v0.2.3.tar.gz"
+config = "https://github.com/WebAssembly/wasi-config/archive/refs/heads/main.tar.gz"
