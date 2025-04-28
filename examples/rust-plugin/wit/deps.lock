@@ -6,6 +6,10 @@ sha512 = "898dcc4e8c15d18acc6b88dbe232336fa4d19019430a910dbc9e7aeaace3077a164af3
 sha256 = "93a701968a7dd3c5d69031bc0601681c468972fdf7e28a93bb6150a67d6ebe8b"
 sha512 = "98fca567c7a01887b0fb38981f1772169b6ea8de475b546508f8b86738d84e44ba95cae81def40ac34e8809f5f60e85224077ab8cb6d6d5d6296acc1df73c159"
 
+[config]
+sha256 = "31fe247a242af7abe32dfadcb4edbc7720f9c47c2bff34b7e5c75df915ab5eb9"
+sha512 = "ce5367f3a104843852236799a3386a44da12ee5e287eb94075fd5252c1400b6ef84438f3b3e19f75fb3d842d82fe3a1bc999385fe59fc8e1696fed69bad69eac"
+
 [filesystem]
 sha256 = "69d42fb10a04a33545b17e055f13db9b1e10e82ba0ed5bdb52334e40dc07c679"
 sha512 = "612effbac6f4804fe0c29dae20b78bbba59e52cb754c15402f5fe229c3153a221e0fbdff1d9d00ceaa3fe049c6a95523a5b99f772f1c16d972eade2c88326a30"
@@ -22,7 +26,7 @@ sha512 = "7a95f964c13da52611141acd89bc8876226497f128e99dd176a4270c5b5efbd8cc847b
 url = "https://github.com/n0emo/wassel/archive/refs/heads/main.tar.gz"
 sha256 = "ffa0a939a942c675bec80d79acfb89f203c054b3a500ea1c001d405a6e1eb63d"
 sha512 = "ab51a7e4ed72c4a5d7bcb1b1cb80cf4fb4e99f6424dc70347384e13771692f77b0128bb9b2ba8558eb4b57a17235fcf7c5bdc87727a1c3dd8e409635b8e92e2b"
-deps = ["cli", "clocks", "filesystem", "http", "io", "random", "sockets"]
+deps = ["cli", "clocks", "config", "filesystem", "http", "io", "random", "sockets"]
 
 [random]
 sha256 = "dd0c91e7125172eb8fd4568e15ad9fc7305643015e6ece4396c3cc5e8c2bf79a"

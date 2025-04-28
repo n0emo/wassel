@@ -6,7 +6,7 @@ use tracing::{debug, info};
 
 use crate::{
     config::Config,
-    plugin::{PluginPool, PoolConfig},
+    plugin::PluginPool,
 };
 
 pub mod body;
@@ -24,7 +24,7 @@ impl Server {
     }
 
     pub async fn serve(&self) -> anyhow::Result<()> {
-        let pool = PluginPool::new(&PoolConfig::default()).await?;
+        let pool = PluginPool::new(&self.config).await?;
         let service = WasselService::new(pool);
 
         let addr = format!(

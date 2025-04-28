@@ -5,4 +5,4 @@ mod pool;
 mod state;
 
 pub use errors::*;
-pub use pool::{PluginPool, PoolConfig};
+pub use pool::PluginPool;

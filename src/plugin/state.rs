@@ -2,11 +2,13 @@ use wasmtime_wasi::{
     ResourceTable,
     p2::{IoView, WasiCtx, WasiCtxBuilder, WasiView},
 };
+use wasmtime_wasi_config::WasiConfigVariables;
 use wasmtime_wasi_http::{WasiHttpCtx, WasiHttpView};
 
 pub struct State {
     pub ctx: WasiCtx,
     pub http_ctx: WasiHttpCtx,
+    pub config_vars: WasiConfigVariables,
     pub table: ResourceTable,
 }
 
@@ -20,12 +22,9 @@ impl Default for State {
         };
         let http_ctx = WasiHttpCtx::new();
         let table = ResourceTable::new();
+        let config_vars = WasiConfigVariables::new();
 
-        Self {
-            ctx,
-            http_ctx,
-            table,
-        }
+        Self { ctx, http_ctx, config_vars, table }
     }
 }
 

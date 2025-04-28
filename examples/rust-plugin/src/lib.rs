@@ -42,23 +42,32 @@ pub struct HttpHandler {
 
 impl GuestHandler for HttpHandler {
     fn handle(&self, _req: IncomingRequest, out: ResponseOutparam) {
+        let base_url = wasi::config::store::get("base_url")
+            .ok()
+            .flatten()
+            .unwrap_or_else(|| "No base url".to_owned());
+
         let res = OutgoingResponse::new(Headers::new());
         res.set_status_code(200).unwrap();
         let body = res.body().unwrap();
         let stream = body.write().unwrap();
         ResponseOutparam::set(out, Ok(res));
-        stream.write((self.func)().as_bytes()).unwrap();
+        let response = format!("{}\n{}\n",
+            (self.func)(),
+            base_url,
+        );
+        stream.write(response.as_bytes()).unwrap();
         drop(stream);
         OutgoingBody::finish(body, None).unwrap();
     }
 }
 
 fn handle_hello() -> String {
-    "Hello from plugin\n".to_owned()
+    "Hello from plugin".to_owned()
 }
 
 fn handle_bye() -> String {
-    "Goodbye from plugin\n".to_owned()
+    "Goodbye from plugin".to_owned()
 }
 
 export!(Plugin);

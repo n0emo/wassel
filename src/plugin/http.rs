@@ -1,4 +1,4 @@
-use std::ops::DerefMut as _;
+use std::{collections::HashMap, ops::DerefMut as _};
 
 use bindings::exports::wassel::plugin::http_plugin;
 use hyper::{Request, Response, body::Incoming};
@@ -7,6 +7,7 @@ use wasmtime::{
     Engine, Store,
     component::{Component, Instance, InstancePre, Linker},
 };
+use wasmtime_wasi_config::WasiConfigVariables;
 use wasmtime_wasi_http::{
     WasiHttpView as _, bindings::http::types::Scheme, body::HyperOutgoingBody,
 };
@@ -16,17 +17,19 @@ use super::{PluginHandleError, bindings, state::State};
 pub struct HttpPluginImage {
     _component: Component,
     pre: InstancePre<State>,
+    config: HashMap<String, String>,
 }
 
 impl HttpPluginImage {
-    pub fn new(component: Component, pre: InstancePre<State>) -> Self {
+    pub fn new(component: Component, pre: InstancePre<State>, config: HashMap<String, String>) -> Self {
         Self {
             _component: component,
             pre,
+            config,
         }
     }
 
-    pub fn load(bytes: &[u8], engine: &Engine, linker: &mut Linker<State>) -> anyhow::Result<Self> {
+    pub fn load(bytes: &[u8], engine: &Engine, linker: &mut Linker<State>, config: HashMap<String, String>) -> anyhow::Result<Self> {
         let component = Component::new(engine, bytes)?;
 
         let export = "wassel:plugin/http-plugin";
@@ -36,11 +39,15 @@ impl HttpPluginImage {
 
         let pre = linker.instantiate_pre(&component)?;
 
-        Ok(Self::new(component, pre))
+        Ok(Self::new(component, pre, config))
     }
 
     pub async fn instantiate(&self, engine: &Engine) -> anyhow::Result<HttpPlugin> {
-        let mut store = wasmtime::Store::new(engine, State::default());
+        let mut store = wasmtime::Store::new(engine, State {
+            config_vars: WasiConfigVariables::from_iter(self.config.iter()),
+            ..Default::default()
+        });
+
         let instance = self.pre.instantiate_async(&mut store).await?;
         let bindings = bindings::Exports::new(&mut store, &instance)?;
 
@@ -49,9 +56,15 @@ impl HttpPluginImage {
             .call_instantiate(&mut store)
             .await?;
 
+
+        let mut base_url = self.config.get("base_url").map(|s| s.to_owned()).unwrap_or_default();
+        if base_url.ends_with("/") {
+            base_url.pop();
+        }
         let mut handler_map = matchit::Router::new();
         for endpoint in &descriptor.endpoints {
-            handler_map.insert(&endpoint.path, endpoint.handler)?;
+            let path = format!("{base_url}{path}", path = &endpoint.path);
+            handler_map.insert(path, endpoint.handler)?;
         }
 
         Ok(HttpPlugin {
@@ -59,8 +72,12 @@ impl HttpPluginImage {
             store: Mutex::new(store),
             descriptor,
             proxy: bindings,
-            handler_map,
+            router: handler_map,
         })
+    }
+
+    pub fn set_config(&mut self, config: HashMap<String, String>) {
+        self.config = config;
     }
 }
 
@@ -69,7 +86,7 @@ pub struct HttpPlugin {
     store: Mutex<Store<State>>,
     proxy: bindings::Exports,
     descriptor: http_plugin::Plugin,
-    handler_map: matchit::Router<http_plugin::Handler>,
+    router: matchit::Router<http_plugin::Handler>,
 }
 
 impl HttpPlugin {
@@ -83,7 +100,7 @@ impl HttpPlugin {
         let mut store_guard = self.store.lock().await;
         let mut store = MutexGuard::deref_mut(&mut store_guard);
         let handler = *self
-            .handler_map
+            .router
             .at(route)
             .map_err(|_| PluginHandleError::EndpointNotFound(route.to_owned()))?
             .value;

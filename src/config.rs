@@ -7,10 +7,10 @@ use tracing::error;
 pub struct Config {
     pub host: String,
     pub port: String,
+    pub plugins_directory: String,
 
-    // TODO: Per-plugin base URL
     #[allow(unused)]
-    pub plugins: HashMap<String, String>,
+    pub plugins: HashMap<String, HashMap<String, String>>,
 }
 
 impl Config {
@@ -21,7 +21,9 @@ impl Config {
             .unwrap()
             .set_default("port", "9150")
             .unwrap()
-            .set_default("plugins", HashMap::<String, String>::new())
+            .set_default("plugins_directory", "plugins")
+            .unwrap()
+            .set_default("plugins", HashMap::<String, HashMap<String, String>>::new())
             .unwrap()
             .build()
         else {
@@ -43,6 +45,7 @@ impl Default for Config {
         Self {
             host: "127.0.0.1".to_owned(),
             port: "9150".to_owned(),
+            plugins_directory: "plugins".to_owned(),
             plugins: HashMap::new(),
         }
     }
