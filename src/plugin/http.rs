@@ -29,6 +29,7 @@ use super::{
 #[derive(Debug, Clone, Deserialize)]
 pub struct HttpPluginMeta {
     id: String,
+    #[allow(unused)]
     name: String,
     #[allow(unused)]
     version: String,
@@ -49,11 +50,17 @@ pub struct HttpPluginImage {
 impl HttpPluginImage {
     pub async fn load(directory: &Path, engine: &Engine, config: &Config) -> anyhow::Result<Self> {
         let meta = fs::read_to_string(directory.join("plugin.toml"))?;
-        let meta = toml::from_str(&meta)?;
+        let meta: HttpPluginMeta = toml::from_str(&meta)?;
 
         let bytes = fs::read(directory.join("plugin.wasm"))?;
 
         let component = Component::new(engine, bytes)?;
+
+        let plugin_config = config
+            .plugins
+            .get(&meta.id)
+            .cloned()
+            .unwrap_or_else(|| HashMap::from_iter([("base_url".to_owned(), "".to_owned())]));
 
         let mut linker = wasmtime::component::Linker::<State>::new(&engine);
         wasmtime_wasi::p2::add_to_linker_async(&mut linker)?;
@@ -72,16 +79,9 @@ impl HttpPluginImage {
             meta,
             paths: Vec::new(),
             router: Arc::default(),
-            config: HashMap::new(),
+            config: plugin_config,
         };
         let instance = image.instantiate(&engine).await?;
-
-        let plugin_config = config
-            .plugins
-            .get(&image.meta.name)
-            .cloned()
-            .unwrap_or_else(|| HashMap::from_iter([("base_url".to_owned(), "".to_owned())]));
-        let base_url = &plugin_config["base_url"];
 
         let proxy =
             bindings::Exports::new(instance.store.lock().await.deref_mut(), &instance.instance)?;
@@ -90,6 +90,7 @@ impl HttpPluginImage {
             .call_get_endpoints(instance.store.lock().await.deref_mut())
             .await?;
 
+        let base_url = &image.config["base_url"];
         let mut router = Router::new();
         for endpoint in endpoints {
             let http_plugin::Endpoint { path, handler } = endpoint;

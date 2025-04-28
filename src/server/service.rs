@@ -1,6 +1,7 @@
 use std::pin::Pin;
 
 use hyper::{Request, StatusCode, body::Incoming, service::Service};
+use tracing::debug;
 
 use crate::plugin::PluginPool;
 
@@ -34,6 +35,9 @@ impl Service<Request<Incoming>> for WasselService {
             };
 
             let result = plugin.handle(req).await.map_err(ServeError::PluginError);
+            if let Err(e) = &result {
+                debug!("Error serving request: {e}");
+            }
 
             Ok(result.into_response())
         };

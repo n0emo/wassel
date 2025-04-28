@@ -6,7 +6,7 @@ pub enum PluginHandleError {
     #[error("Endpoint for path '{0}' was not found in the plugin")]
     EndpointNotFound(String),
 
-    #[error("Hander export {handler} for {path} was not found in the plugin: {error}")]
+    #[error("Could not get handler export `{handler}` for `{path}`: {error}")]
     GettingHandlerExport {
         path: String,
         handler: String,

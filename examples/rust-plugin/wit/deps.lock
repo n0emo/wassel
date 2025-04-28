@@ -24,8 +24,8 @@ sha512 = "7a95f964c13da52611141acd89bc8876226497f128e99dd176a4270c5b5efbd8cc847b
 
 [plugin]
 url = "https://github.com/n0emo/wassel/archive/refs/heads/main.tar.gz"
-sha256 = "ffa0a939a942c675bec80d79acfb89f203c054b3a500ea1c001d405a6e1eb63d"
-sha512 = "ab51a7e4ed72c4a5d7bcb1b1cb80cf4fb4e99f6424dc70347384e13771692f77b0128bb9b2ba8558eb4b57a17235fcf7c5bdc87727a1c3dd8e409635b8e92e2b"
+sha256 = "5e331e32e19bc531becb88186ca9aa6ee16d4b5a6971d8a0a44884f7621c33c1"
+sha512 = "e441674324790cfca2bf33da7875789208c71a25d0f172495363f7e75c761630a1df3d77d237c141ec4fc359c08f0d11e000e5c456c6c8fa9bad5271ce9b90e9"
 deps = ["cli", "clocks", "config", "filesystem", "http", "io", "random", "sockets"]
 
 [random]

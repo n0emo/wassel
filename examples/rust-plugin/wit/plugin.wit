@@ -1,5 +1,17 @@
-package hello:plugin;
+package hello-plugin:plugin;
 
 world plugin {
     include wassel:plugin/exports;
+
+    use wasi:http/types@0.2.3.{incoming-request, response-outparam};
+
+    export handle-hello: func(
+        request: incoming-request,
+        response-out: response-outparam
+    );
+
+    export handle-bye: func(
+        request: incoming-request,
+        response-out: response-outparam
+    );
 }
