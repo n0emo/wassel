@@ -1,6 +1,5 @@
 [workspace]
-members = [
-]
+members = []
 resolver = "3"
 
 [package]

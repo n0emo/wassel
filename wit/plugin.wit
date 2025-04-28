@@ -1,6 +1,5 @@
 package wassel:plugin;
 
-
 interface http-plugin {
     use wasi:http/types@0.2.3.{incoming-request, response-outparam};
 
@@ -34,6 +33,6 @@ interface http-plugin {
     instantiate: func() -> plugin;
 }
 
-world plugin {
+world exports {
     export http-plugin;
 }

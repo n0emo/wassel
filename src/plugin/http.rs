@@ -42,7 +42,7 @@ impl HttpPluginImage {
     pub async fn instantiate(&self, engine: &Engine) -> anyhow::Result<HttpPlugin> {
         let mut store = wasmtime::Store::new(engine, State::default());
         let instance = self.pre.instantiate_async(&mut store).await?;
-        let bindings = bindings::Plugin::new(&mut store, &instance)?;
+        let bindings = bindings::Exports::new(&mut store, &instance)?;
 
         let descriptor = bindings
             .wassel_plugin_http_plugin()
@@ -67,7 +67,7 @@ impl HttpPluginImage {
 pub struct HttpPlugin {
     _instance: Instance,
     store: Mutex<Store<State>>,
-    proxy: bindings::Plugin,
+    proxy: bindings::Exports,
     descriptor: http_plugin::Plugin,
     handler_map: matchit::Router<http_plugin::Handler>,
 }
