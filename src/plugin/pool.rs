@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use anyhow::Context;
 use dashmap::DashMap;
 use tracing::{debug, error, info};
 use wasmtime::Engine;
@@ -26,13 +27,13 @@ impl PluginPool {
         let engine = {
             let mut config = wasmtime::Config::new();
             config.async_support(true);
-            Engine::new(&config)?
+            Engine::new(&config).context("Creating Engine")?
         };
 
         let map = DashMap::new();
         let mut router = matchit::Router::new();
 
-        for module in std::fs::read_dir(&config.plugins_directory)? {
+        for module in std::fs::read_dir(&config.plugins_directory).context("Reading plugin directory")? {
             let Ok(module) = module else {
                 continue;
             };
@@ -47,14 +48,15 @@ impl PluginPool {
                 match HttpPluginImage::load(&module.path(), &engine, config).await {
                     Ok(p) => p,
                     Err(e) => {
-                        error!("Error loading plugin {path:?}: {e}", path = module.path());
+                        error!("Error loading plugin {path:?}: {e:#}", path = module.path());
                         errors += 1;
                         continue;
                     }
                 };
 
             for path in plugin.paths() {
-                router.insert(path, plugin.id().to_owned())?;
+                debug!("{path}");
+                router.insert(path, plugin.id().to_owned()).context("Inserting plugin into router")?;
             }
             map.insert(plugin.id().to_owned(), plugin);
             successes += 1;

@@ -1,0 +1,2 @@
+[overrides]
+"wassel:plugin" = { path = "../../wit" }

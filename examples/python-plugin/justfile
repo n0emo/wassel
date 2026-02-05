@@ -1,0 +1,8 @@
+build:
+    componentize-py \
+    --wit-path wit \
+    --world plugin \
+    componentize \
+    app \
+    -o add.wasm
+

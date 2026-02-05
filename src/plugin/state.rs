@@ -1,7 +1,4 @@
-use wasmtime_wasi::{
-    ResourceTable,
-    p2::{IoView, WasiCtx, WasiCtxBuilder, WasiView},
-};
+use wasmtime_wasi::{ResourceTable, WasiCtx, WasiCtxBuilder, WasiCtxView, WasiView};
 use wasmtime_wasi_config::WasiConfigVariables;
 use wasmtime_wasi_http::{WasiHttpCtx, WasiHttpView};
 
@@ -24,24 +21,30 @@ impl Default for State {
         let table = ResourceTable::new();
         let config_vars = WasiConfigVariables::new();
 
-        Self { ctx, http_ctx, config_vars, table }
-    }
-}
-
-impl IoView for State {
-    fn table(&mut self) -> &mut ResourceTable {
-        &mut self.table
+        Self {
+            ctx,
+            http_ctx,
+            config_vars,
+            table,
+        }
     }
 }
 
 impl WasiView for State {
-    fn ctx(&mut self) -> &mut WasiCtx {
-        &mut self.ctx
+    fn ctx(&mut self) -> WasiCtxView<'_> {
+        WasiCtxView {
+            ctx: &mut self.ctx,
+            table: &mut self.table,
+        }
     }
 }
-
+//
 impl WasiHttpView for State {
     fn ctx(&mut self) -> &mut WasiHttpCtx {
         &mut self.http_ctx
+    }
+
+    fn table(&mut self) -> &mut ResourceTable {
+        &mut self.table
     }
 }

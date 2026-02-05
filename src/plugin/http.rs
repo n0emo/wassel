@@ -1,17 +1,14 @@
-use std::{
-    collections::HashMap,
-    fs,
-    ops::DerefMut as _,
-    path::Path, sync::Arc,
-};
+use std::{collections::HashMap, fs, ops::DerefMut as _, path::Path, sync::Arc};
 
+use anyhow::Context;
 use hyper::{Request, Response, body::Incoming};
 use matchit::Router;
 use serde::Deserialize;
 use tokio::sync::{Mutex, MutexGuard};
 use tracing::error;
 use wasmtime::{
-    component::{Component, Instance, InstancePre}, Engine, Store
+    Engine, Store,
+    component::{Component, Instance, InstancePre},
 };
 use wasmtime_wasi_config::{WasiConfig, WasiConfigVariables};
 use wasmtime_wasi_http::{
@@ -49,12 +46,14 @@ pub struct HttpPluginImage {
 
 impl HttpPluginImage {
     pub async fn load(directory: &Path, engine: &Engine, config: &Config) -> anyhow::Result<Self> {
-        let meta = fs::read_to_string(directory.join("plugin.toml"))?;
-        let meta: HttpPluginMeta = toml::from_str(&meta)?;
+        let meta = fs::read_to_string(directory.join("plugin.toml"))
+            .context("Joining directory path with `plugin.toml`")?;
+        let meta: HttpPluginMeta = toml::from_str(&meta).context("Parsing plugin.toml")?;
 
-        let bytes = fs::read(directory.join("plugin.wasm"))?;
+        let bytes = fs::read(directory.join("plugin.wasm"))
+            .context("Joining directory path with `plugin.wasm`")?;
 
-        let component = Component::new(engine, bytes)?;
+        let component = Component::new(engine, bytes).context("Creating WASM component")?;
 
         let plugin_config = config
             .plugins
@@ -63,16 +62,21 @@ impl HttpPluginImage {
             .unwrap_or_else(|| HashMap::from_iter([("base_url".to_owned(), "".to_owned())]));
 
         let mut linker = wasmtime::component::Linker::<State>::new(&engine);
-        wasmtime_wasi::p2::add_to_linker_async(&mut linker)?;
-        wasmtime_wasi_http::add_only_http_to_linker_async(&mut linker)?;
-        wasmtime_wasi_config::add_to_linker(&mut linker, |c| WasiConfig::from(&c.config_vars))?;
+        wasmtime_wasi::p2::add_to_linker_async(&mut linker)
+            .context("Adding WASIp2 exports to linker")?;
+        wasmtime_wasi_http::add_only_http_to_linker_async(&mut linker)
+            .context("Adding WASI HTTP tp linker")?;
+        wasmtime_wasi_config::add_to_linker(&mut linker, |c| WasiConfig::from(&c.config_vars))
+            .context("Adding WASI config to linker")?;
 
         let export = "wassel:plugin/http-plugin";
         if component.get_export(None, export).is_none() {
             anyhow::bail!("There is no '{export}' export");
         }
 
-        let pre = linker.instantiate_pre(&component)?;
+        let pre = linker
+            .instantiate_pre(&component)
+            .context("Pre-instantiating plugin")?;
         let mut image = Self {
             _component: component,
             pre,
@@ -81,14 +85,18 @@ impl HttpPluginImage {
             router: Arc::default(),
             config: plugin_config,
         };
-        let instance = image.instantiate(&engine).await?;
+        let instance = image
+            .instantiate(&engine)
+            .await
+            .context("Instantiating plugin")?;
 
         let proxy =
             bindings::Exports::new(instance.store.lock().await.deref_mut(), &instance.instance)?;
         let endpoints = proxy
             .wassel_plugin_http_plugin()
             .call_get_endpoints(instance.store.lock().await.deref_mut())
-            .await?;
+            .await
+            .context("Getting plugin endpoints")?;
 
         let base_url = &image.config["base_url"];
         let mut router = Router::new();
@@ -102,7 +110,9 @@ impl HttpPluginImage {
             }
 
             let path = format!("{base_url}{path}");
-            router.insert(path.clone(), handler)?;
+            router
+                .insert(path.clone(), handler)
+                .context("Inserting plugin path into router")?;
             image.paths.push(path);
         }
 
