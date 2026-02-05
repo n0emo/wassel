@@ -4,7 +4,7 @@ from typing import override, List
 import plugin
 from plugin import exports
 from plugin.exports.http_plugin import Endpoint
-from plugin.types import Ok
+from plugin import Ok
 from plugin.imports.wasi_http_types import (
     IncomingRequest,
     ResponseOutparam,
