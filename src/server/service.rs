@@ -39,7 +39,7 @@ impl Service<Request<Incoming>> for WasselService {
                 debug!("Error serving request: {e}");
             }
 
-            Ok(result.unwrap().into_response())
+            Ok(result?.into_response())
         };
 
         Box::pin(future)

@@ -1,11 +1,9 @@
-use std::{collections::HashMap, fs, ops::DerefMut as _, path::Path, sync::Arc};
+use std::{collections::HashMap, fs, ops::DerefMut as _, path::Path};
 
 use anyhow::Context;
 use hyper::{Request, Response, body::Incoming};
-use matchit::Router;
 use serde::Deserialize;
 use tokio::sync::{Mutex, MutexGuard};
-use tracing::error;
 use wasmtime::{
     Engine, Store,
     component::{Component, Instance, InstancePre},
@@ -17,11 +15,7 @@ use wasmtime_wasi_http::{
 
 use crate::config::Config;
 
-use super::{
-    PluginHandleError,
-    bindings::{self, exports::wassel::plugin::http_plugin},
-    state::State,
-};
+use super::{PluginHandleError, bindings, state::State};
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct HttpPluginMeta {
@@ -39,8 +33,6 @@ pub struct HttpPluginImage {
     pre: InstancePre<State>,
     #[allow(unused)]
     meta: HttpPluginMeta,
-    paths: Vec<String>,
-    router: Arc<Router<String>>,
     config: HashMap<String, String>,
 }
 
@@ -59,9 +51,9 @@ impl HttpPluginImage {
             .plugins
             .get(&meta.id)
             .cloned()
-            .unwrap_or_else(|| HashMap::from_iter([("base_url".to_owned(), "".to_owned())]));
+            .unwrap_or_else(|| HashMap::from_iter([("base_url".to_owned(), "/".to_owned())]));
 
-        let mut linker = wasmtime::component::Linker::<State>::new(&engine);
+        let mut linker = wasmtime::component::Linker::<State>::new(engine);
         wasmtime_wasi::p2::add_to_linker_async(&mut linker)
             .context("Adding WASIp2 exports to linker")?;
         wasmtime_wasi_http::add_only_http_to_linker_async(&mut linker)
@@ -69,7 +61,7 @@ impl HttpPluginImage {
         wasmtime_wasi_config::add_to_linker(&mut linker, |c| WasiConfig::from(&c.config_vars))
             .context("Adding WASI config to linker")?;
 
-        let export = "wassel:plugin/http-plugin";
+        let export = "wassel:foundation/http-handler";
         if component.get_export(None, export).is_none() {
             anyhow::bail!("There is no '{export}' export");
         }
@@ -77,46 +69,13 @@ impl HttpPluginImage {
         let pre = linker
             .instantiate_pre(&component)
             .context("Pre-instantiating plugin")?;
-        let mut image = Self {
+
+        let image = Self {
             _component: component,
             pre,
             meta,
-            paths: Vec::new(),
-            router: Arc::default(),
             config: plugin_config,
         };
-        let instance = image
-            .instantiate(&engine)
-            .await
-            .context("Instantiating plugin")?;
-
-        let proxy =
-            bindings::Exports::new(instance.store.lock().await.deref_mut(), &instance.instance)?;
-        let endpoints = proxy
-            .wassel_plugin_http_plugin()
-            .call_get_endpoints(instance.store.lock().await.deref_mut())
-            .await
-            .context("Getting plugin endpoints")?;
-
-        let base_url = &image.config["base_url"];
-        let mut router = Router::new();
-        for endpoint in endpoints {
-            let http_plugin::Endpoint { path, handler } = endpoint;
-            if !path.starts_with("/") {
-                error!(
-                    "Error loading plugin: incorrect endpoint path `{path}`: paths must start with /"
-                );
-                continue;
-            }
-
-            let path = format!("{base_url}{path}");
-            router
-                .insert(path.clone(), handler)
-                .context("Inserting plugin path into router")?;
-            image.paths.push(path);
-        }
-
-        image.router = Arc::new(router);
 
         Ok(image)
     }
@@ -135,7 +94,6 @@ impl HttpPluginImage {
         Ok(HttpPlugin {
             instance,
             store: Mutex::new(store),
-            router: self.router.clone(),
         })
     }
 
@@ -143,15 +101,14 @@ impl HttpPluginImage {
         &self.meta.id
     }
 
-    pub fn paths(&self) -> impl Iterator<Item = &str> {
-        self.paths.iter().map(|s| s.as_str())
+    pub fn config(&self) -> &HashMap<String, String> {
+        &self.config
     }
 }
 
 pub struct HttpPlugin {
     instance: Instance,
     store: Mutex<Store<State>>,
-    router: Arc<Router<String>>,
 }
 
 impl HttpPlugin {
@@ -160,15 +117,9 @@ impl HttpPlugin {
         req: Request<Incoming>,
     ) -> Result<Response<HyperOutgoingBody>, PluginHandleError> {
         let (sender, reciever) = tokio::sync::oneshot::channel();
-        let route = req.uri().path().to_owned();
 
         let mut store_guard = self.store.lock().await;
         let mut store = MutexGuard::deref_mut(&mut store_guard);
-        let handler = self
-            .router
-            .at(&route)
-            .map_err(|_| PluginHandleError::EndpointNotFound(route.clone()))?
-            .value;
 
         let req = store
             .data_mut()
@@ -180,26 +131,14 @@ impl HttpPlugin {
             .new_response_outparam(sender)
             .map_err(PluginHandleError::CreateResource)?;
 
-        let handler = self
-            .instance
-            .get_typed_func::<(
-                wasmtime::component::Resource<wasmtime_wasi_http::types::HostIncomingRequest>,
-                wasmtime::component::Resource<wasmtime_wasi_http::types::HostResponseOutparam>,
-            ), ()>(&mut store, handler)
-            .map_err(|e| PluginHandleError::GettingHandlerExport {
-                path: route.to_owned(),
-                handler: handler.clone(),
-                error: e,
-            })?;
+        let proxy = bindings::HttpPlugin::new(&mut store, &self.instance)
+            .map_err(PluginHandleError::Guest)?;
 
-        handler
-            .call_async(&mut store, (req, out))
+        proxy
+            .wassel_foundation_http_handler()
+            .call_handle_request(&mut store, req, out)
             .await
-            .map_err(|e| PluginHandleError::CallingHandleMethod(e))?;
-        handler
-            .post_return_async(&mut store)
-            .await
-            .map_err(|e| PluginHandleError::CallingHandleMethod(e))?;
+            .map_err(PluginHandleError::CallingHandleMethod)?;
 
         let response = reciever.await??;
 

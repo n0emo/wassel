@@ -3,16 +3,6 @@ use wasmtime_wasi_http::bindings::http::types::ErrorCode;
 
 #[derive(Debug, thiserror::Error)]
 pub enum PluginHandleError {
-    #[error("Endpoint for path '{0}' was not found in the plugin")]
-    EndpointNotFound(String),
-
-    #[error("Could not get handler export `{handler}` for `{path}`: {error}")]
-    GettingHandlerExport {
-        path: String,
-        handler: String,
-        error: wasmtime::Error,
-    },
-
     #[error("Could not create resource: {0}")]
     CreateResource(wasmtime::Error),
 
@@ -24,4 +14,7 @@ pub enum PluginHandleError {
 
     #[error("Plugin returned error code: {0}")]
     ErrorCode(#[from] ErrorCode),
+
+    #[error("Could not create component guest")]
+    Guest(wasmtime::Error),
 }

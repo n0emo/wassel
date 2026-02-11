@@ -1,0 +1,24 @@
+package wassel:foundation;
+
+world http-plugin {
+    include platform;
+    export http-handler;
+}
+
+world platform {
+    include wasi:config/imports@0.2.0-rc.1;
+    include wasi:filesystem/imports@0.2.10;
+    include wasi:http/imports@0.2.10;
+    include wasi:io/imports@0.2.10;
+    include wasi:random/imports@0.2.10;
+    include wasi:sockets/imports@0.2.10;
+}
+
+interface http-handler {
+    use wasi:http/types@0.2.10.{incoming-request, response-outparam};
+
+    handle-request: func(
+        request: incoming-request,
+        response-out: response-outparam
+    );
+}

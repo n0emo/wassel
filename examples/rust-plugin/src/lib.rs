@@ -1,29 +1,17 @@
-use exports::wassel::plugin::http_plugin::{self, Endpoint};
-use wasi::http::types::{Headers, OutgoingBody, OutgoingResponse};
-
-wit_bindgen::generate!({
-    world: "plugin",
-    generate_all,
-});
+use wassel_sdk_rust::bindings::{
+    export,
+    exports::wassel::foundation::http_handler::Guest,
+    wasi::{
+        self,
+        http::types::{Headers, IncomingRequest, OutgoingBody, OutgoingResponse, ResponseOutparam},
+    },
+};
 
 struct Plugin;
 
 impl Guest for Plugin {
-    fn handle_hello(request: IncomingRequest, response_out: ResponseOutparam) {
-        handle(request, response_out, "Hello from Rust");
-    }
-
-    fn handle_bye(request:IncomingRequest,response_out:ResponseOutparam) {
+    fn handle_request(request: IncomingRequest, response_out: ResponseOutparam) -> () {
         handle(request, response_out, "Goodbye from Rust");
-    }
-}
-
-impl http_plugin::Guest for Plugin {
-    fn get_endpoints() -> Vec::<Endpoint> {
-        vec![
-            Endpoint { path: "/hello".to_owned(), handler: "handle-hello".to_owned() },
-            Endpoint { path: "/bye".to_owned(), handler: "handle-bye".to_owned() },
-        ]
     }
 }
 
@@ -38,10 +26,7 @@ fn handle(_req: IncomingRequest, out: ResponseOutparam, text: &str) {
     let body = res.body().unwrap();
     let stream = body.write().unwrap();
     ResponseOutparam::set(out, Ok(res));
-    let response = format!("{}\n{}\n",
-        text,
-        base_url,
-    );
+    let response = format!("{}\n{}\n", text, base_url,);
     stream.write(response.as_bytes()).unwrap();
     drop(stream);
     OutgoingBody::finish(body, None).unwrap();

@@ -33,7 +33,9 @@ impl PluginPool {
         let map = DashMap::new();
         let mut router = matchit::Router::new();
 
-        for module in std::fs::read_dir(&config.plugins_directory).context("Reading plugin directory")? {
+        for module in
+            std::fs::read_dir(&config.plugins_directory).context("Reading plugin directory")?
+        {
             let Ok(module) = module else {
                 continue;
             };
@@ -44,21 +46,32 @@ impl PluginPool {
 
             debug!("Loading {plugin:?}", plugin = module.path());
 
-            let plugin =
-                match HttpPluginImage::load(&module.path(), &engine, config).await {
-                    Ok(p) => p,
-                    Err(e) => {
-                        error!("Error loading plugin {path:?}: {e:#}", path = module.path());
-                        errors += 1;
-                        continue;
-                    }
-                };
+            let plugin = match HttpPluginImage::load(&module.path(), &engine, config).await {
+                Ok(p) => p,
+                Err(e) => {
+                    error!("Error loading plugin {path:?}: {e:#}", path = module.path());
+                    errors += 1;
+                    continue;
+                }
+            };
 
-            for path in plugin.paths() {
-                debug!("{path}");
-                router.insert(path, plugin.id().to_owned()).context("Inserting plugin into router")?;
+            let mut base_url = plugin.config()["base_url"].clone();
+            if !base_url.ends_with('/') {
+                base_url += "/";
             }
+            base_url += "{*path}";
+
+            if router.at(&base_url).is_ok() {
+                error!("Same url `{base_url}` is already handled by another plugin");
+                errors += 1;
+                continue;
+            }
+
+            router
+                .insert(base_url, plugin.id().to_owned())
+                .context("Inserting plugin into router")?;
             map.insert(plugin.id().to_owned(), plugin);
+
             successes += 1;
         }
 
