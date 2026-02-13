@@ -1,16 +1,21 @@
-[parallel]
-wit-fetch: wit-fetch-root wit-fetch-python-plugin wit-fetch-rust-plugin
+@_default:
+    just --list
 
-@wit-fetch-root:
-    echo "Fetching WIT dependencies for Wassel"
+prepare:
+    cargo clippy --fix --allow-dirty -- -D warnings
+    cargo test
+    cargo fmt
+
+wit:
     wkg wit fetch -t wit
 
-[working-directory("examples/python-plugin")]
-@wit-fetch-python-plugin:
-    echo "Fetching WIT dependencies for Python plugin example"
-    wkg wit fetch -t wit
-
-[working-directory("examples/rust-plugin")]
-@wit-fetch-rust-plugin:
-    echo "Fetching WIT dependencies for Rust plugin example"
-    wkg wit fetch -t wit
+rust-plugin:
+    mkdir -p plugins/rust-plugin
+    cargo build \
+        --manifest-path ./examples/rust-plugin/Cargo.toml \
+        --target-dir ./target/ \
+        --target wasm32-wasip2
+    cp  ./target/wasm32-wasip2/debug/hello_plugin.wasm \
+        ./plugins/rust-plugin/plugin.wasm
+    cp  ./examples/rust-plugin/plugin.toml \
+        ./plugins/rust-plugin/plugin.toml

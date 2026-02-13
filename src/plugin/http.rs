@@ -6,14 +6,17 @@ use serde::Deserialize;
 use tokio::sync::{Mutex, MutexGuard};
 use wasmtime::{
     Engine, Store,
-    component::{Component, Instance, InstancePre},
+    component::{Component, HasSelf, Instance, InstancePre},
 };
 use wasmtime_wasi_config::{WasiConfig, WasiConfigVariables};
 use wasmtime_wasi_http::{
     WasiHttpView as _, bindings::http::types::Scheme, body::HyperOutgoingBody,
 };
 
-use crate::config::Config;
+use crate::{
+    config::Config,
+    plugin::bindings::wassel::foundation::http_client::{self},
+};
 
 use super::{PluginHandleError, bindings, state::State};
 
@@ -54,6 +57,10 @@ impl HttpPluginImage {
             .unwrap_or_else(|| HashMap::from_iter([("base_url".to_owned(), "/".to_owned())]));
 
         let mut linker = wasmtime::component::Linker::<State>::new(engine);
+
+        http_client::add_to_linker::<_, HasSelf<_>>(&mut linker, |s| s)
+            .context("Could not add wassel:foundation/http-client to linker")?;
+
         wasmtime_wasi::p2::add_to_linker_async(&mut linker)
             .context("Adding WASIp2 exports to linker")?;
         wasmtime_wasi_http::add_only_http_to_linker_async(&mut linker)

@@ -12,6 +12,8 @@ world platform {
     include wasi:io/imports@0.2.10;
     include wasi:random/imports@0.2.10;
     include wasi:sockets/imports@0.2.10;
+
+    import http-client;
 }
 
 interface http-handler {

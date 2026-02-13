@@ -5,5 +5,5 @@ wasmtime::component::bindgen!({
         "wasi:http": wasmtime_wasi_http::bindings::http,
     },
     exports: { default: async },
+    imports: { default: async },
 });
-

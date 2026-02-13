@@ -42,7 +42,7 @@ impl Config {
             match plugin.get_mut("base_url") {
                 None => {
                     plugin.insert("base_url".to_owned(), "".to_owned());
-                },
+                }
                 Some(b) => {
                     if b.ends_with("/") {
                         b.pop();

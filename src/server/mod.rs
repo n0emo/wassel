@@ -4,10 +4,7 @@ use service::WasselService;
 use tokio::net::TcpListener;
 use tracing::{error, info};
 
-use crate::{
-    config::Config,
-    plugin::PluginPool,
-};
+use crate::{config::Config, plugin::PluginPool};
 
 pub mod body;
 pub mod errors;
