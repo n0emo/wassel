@@ -1,6 +1,7 @@
 mod bindings;
 mod errors;
 mod http;
+mod http_client;
 mod pool;
 mod state;
 

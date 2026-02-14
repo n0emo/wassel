@@ -58,7 +58,7 @@ impl HttpPluginImage {
 
         let mut linker = wasmtime::component::Linker::<State>::new(engine);
 
-        http_client::add_to_linker::<_, HasSelf<_>>(&mut linker, |s| s)
+        http_client::add_to_linker::<_, HasSelf<State>>(&mut linker, |s| s)
             .context("Could not add wassel:foundation/http-client to linker")?;
 
         wasmtime_wasi::p2::add_to_linker_async(&mut linker)

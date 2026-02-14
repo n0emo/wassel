@@ -3408,6 +3408,7 @@ dependencies = [
  "config",
  "dashmap",
  "futures-util",
+ "http",
  "http-body-util",
  "hyper",
  "hyper-util",
