@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use anyhow::Context;
 use dashmap::DashMap;
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, trace};
 use wasmtime::Engine;
 
 use crate::config::Config;
@@ -59,9 +59,11 @@ impl PluginPool {
             if !base_url.ends_with('/') {
                 base_url += "/";
             }
-            base_url += "{*path}";
+            let base_url_catchall = base_url.clone() + "{*path}";
 
-            if router.at(&base_url).is_ok() {
+            trace!("Registering plugin at route {base_url}");
+
+            if router.at(&base_url).is_ok() || router.at(&base_url_catchall).is_ok() {
                 error!("Same url `{base_url}` is already handled by another plugin");
                 errors += 1;
                 continue;
@@ -70,6 +72,10 @@ impl PluginPool {
             router
                 .insert(base_url, plugin.id().to_owned())
                 .context("Inserting plugin into router")?;
+            router
+                .insert(base_url_catchall, plugin.id().to_owned())
+                .context("Inserting plugin into router")?;
+
             map.insert(plugin.id().to_owned(), plugin);
 
             successes += 1;

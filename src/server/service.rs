@@ -1,7 +1,7 @@
 use std::pin::Pin;
 
 use hyper::{Request, StatusCode, body::Incoming, service::Service};
-use tracing::debug;
+use tracing::trace;
 
 use crate::plugin::PluginPool;
 
@@ -31,14 +31,11 @@ impl Service<Request<Incoming>> for WasselService {
 
         let future = async move {
             let Ok(plugin) = s.pool.get_plugin(req.uri().path()).await else {
+                trace!("No plugin found for route {}", req.uri().path());
                 return Ok(StatusCode::NOT_FOUND.into_response());
             };
 
             let result = plugin.handle(req).await.map_err(ServeError::PluginError);
-            if let Err(e) = &result {
-                debug!("Error serving request: {e}");
-            }
-
             Ok(result?.into_response())
         };
 

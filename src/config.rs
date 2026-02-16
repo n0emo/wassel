@@ -19,7 +19,7 @@ impl Config {
             .add_source(config::File::with_name("config").required(false))
             .set_default("host", "127.0.0.1")
             .unwrap()
-            .set_default("port", "9150")
+            .set_default("port", "9000")
             .unwrap()
             .set_default("plugins_directory", "plugins")
             .unwrap()
@@ -59,7 +59,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             host: "127.0.0.1".to_owned(),
-            port: "9150".to_owned(),
+            port: "9000".to_owned(),
             plugins_directory: "plugins".to_owned(),
             plugins: HashMap::new(),
         }
