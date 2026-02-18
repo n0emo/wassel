@@ -1,3 +1,7 @@
 id = "hello-plugin"
 name = "Hello Rust Plugin"
 version = "0.0.0"
+component = "${CARGO_TARGET_DIR:target}/wasm32-wasip2/debug/hello_plugin.wasm"
+
+[build]
+cmd = "cargo build --target wasm32-wasip2"

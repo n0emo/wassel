@@ -1,0 +1,16 @@
+[package]
+name = "wassel-cli"
+version = "0.1.0"
+edition = "2024"
+default-run = "wassel-cli"
+
+[dependencies]
+wassel-server.workspace = true
+
+anyhow.workspace = true
+clap = { workspace = true, features = ["derive"] }
+serde = { workspace = true, features = ["derive"] }
+subprocess.workspace = true
+subst.workspace = true
+tokio = { workspace = true, features = ["full"] }
+toml.workspace = true
