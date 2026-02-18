@@ -1,0 +1,20 @@
+[package]
+name = "wassel-plugin-stack"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+wassel-plugin-component.workspace = true
+wassel-world.workspace = true
+
+anyhow.workspace = true
+bytes.workspace = true
+http-body-util.workspace = true
+hyper.workspace = true
+matchit.workspace = true
+serde = { workspace = true, features = ["derive"] }
+thiserror.workspace = true
+tokio.workspace = true
+toml.workspace = true
+tracing.workspace = true
+wasmtime.workspace = true

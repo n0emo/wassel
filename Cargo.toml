@@ -1,13 +1,13 @@
 [workspace]
-members = []
+members = ["crates/*"]
 resolver = "3"
 
-[package]
-name = "wassel-server"
-version = "0.0.0"
-edition = "2024"
+[workspace.dependencies]
+wassel-plugin-component = { path = "crates/plugin-component" }
+wassel-plugin-stack = { path = "crates/plugin-stack" }
+wassel-server = { path = "crates/server" }
+wassel-world = { path = "crates/world"}
 
-[dependencies]
 anyhow = "1.0.100"
 bytes = "1.11.1"
 config = "0.15.19"
@@ -29,4 +29,4 @@ wasmtime = "41"
 wasmtime-wasi = "41"
 wasmtime-wasi-config = "41"
 wasmtime-wasi-http = "41"
-wit-bindgen = "0.52.0"
+wit-bindgen = "0.53.1"

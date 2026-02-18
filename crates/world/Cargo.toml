@@ -1,0 +1,9 @@
+[package]
+name = "wassel-world"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+wasmtime-wasi-http.workspace = true
+wasmtime-wasi.workspace = true
+wasmtime.workspace = true

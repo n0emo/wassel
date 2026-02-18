@@ -1,0 +1,17 @@
+[package]
+name = "wassel-server"
+version = "0.1.0"
+edition = "2024"
+default-run = "wassel-server"
+
+[dependencies]
+wassel-plugin-stack.workspace = true
+
+serde = { workspace = true, features = ["derive"] }
+anyhow.workspace = true
+config.workspace = true
+hyper-util.workspace = true
+hyper.workspace = true
+tokio = { workspace = true, features = ["full"] }
+tracing-subscriber.workspace = true
+tracing.workspace = true

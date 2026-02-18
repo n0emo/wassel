@@ -1,6 +1,7 @@
 target/
 /plugins/
 config.toml
+wassel.toml
 
 deps/
 !/wit/deps

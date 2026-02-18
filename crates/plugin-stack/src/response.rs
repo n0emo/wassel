@@ -1,6 +1,6 @@
 use bytes::Bytes;
 use http_body_util::{BodyExt, combinators::UnsyncBoxBody};
-use wasmtime_wasi_http::bindings::http::types::ErrorCode;
+use wassel_world::wasi::http::types::ErrorCode;
 
 use super::body::EmptyBody;
 

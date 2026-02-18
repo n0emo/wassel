@@ -1,8 +1,7 @@
 use hyper::StatusCode;
+use wassel_plugin_component::PluginHandleError;
 
-use crate::plugin::PluginHandleError;
-
-use super::response::IntoResponse;
+use crate::response::IntoResponse;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ServeError {

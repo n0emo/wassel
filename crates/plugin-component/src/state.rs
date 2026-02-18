@@ -1,4 +1,11 @@
-use std::{pin::Pin, time::Duration};
+use anyhow::Context as _;
+use wasmtime_wasi::{
+    DirPerms, FilePerms, ResourceTable, WasiCtx, WasiCtxBuilder, WasiCtxView, WasiView,
+};
+use wasmtime_wasi_config::WasiConfigVariables;
+use wasmtime_wasi_http::{WasiHttpCtx, WasiHttpView, body::HostIncomingBody};
+
+use std::{path::Path, pin::Pin, time::Duration};
 
 use bytes::Bytes;
 use futures_util::{Stream, TryStreamExt as _};
@@ -6,16 +13,70 @@ use http::Method;
 use http::method::InvalidMethod;
 use http_body_util::{BodyExt as _, combinators::UnsyncBoxBody};
 use wasmtime::component::Resource;
-use wasmtime_wasi_http::{bindings::http::types::Method as WasiMethod, body::HostIncomingBody};
-
-use crate::plugin::{
-    bindings::wassel::foundation::http_client::{
-        self, ErrorCode, IncomingResponse, OutgoingRequest,
-    },
-    state::State,
+use wassel_world::{
+    wasi::http::types::{ErrorCode, Method as WasiMethod},
+    wassel::foundation::http_client::{self, IncomingResponse, OutgoingRequest},
 };
 
-impl http_client::Host for State {
+pub struct PluginState {
+    ctx: WasiCtx,
+    config_vars: WasiConfigVariables,
+    table: ResourceTable,
+    http_ctx: WasiHttpCtx,
+    http_client: reqwest::Client,
+}
+
+impl PluginState {
+    pub fn new(data_dir: impl AsRef<Path>) -> anyhow::Result<Self> {
+        let ctx = {
+            let mut builder = WasiCtxBuilder::new();
+            builder.inherit_stdout();
+            builder.inherit_stderr();
+            builder
+                .preopened_dir(data_dir.as_ref(), ".", DirPerms::all(), FilePerms::all())
+                .context(format!(
+                    "Preopening data directory `{}`",
+                    data_dir.as_ref().to_string_lossy()
+                ))?;
+            builder.build()
+        };
+
+        let s = Self {
+            ctx,
+            config_vars: WasiConfigVariables::new(),
+            table: ResourceTable::new(),
+            http_ctx: WasiHttpCtx::new(),
+            http_client: reqwest::Client::new(),
+        };
+
+        Ok(s)
+    }
+
+    pub fn config_vars(&self) -> &WasiConfigVariables {
+        &self.config_vars
+    }
+}
+
+impl WasiView for PluginState {
+    fn ctx(&mut self) -> WasiCtxView<'_> {
+        WasiCtxView {
+            ctx: &mut self.ctx,
+            table: &mut self.table,
+        }
+    }
+}
+
+impl WasiHttpView for PluginState {
+    fn ctx(&mut self) -> &mut WasiHttpCtx {
+        &mut self.http_ctx
+    }
+
+    fn table(&mut self) -> &mut ResourceTable {
+        &mut self.table
+    }
+}
+
+impl http_client::Host for PluginState {
     async fn send(
         &mut self,
         url: http_client::Url,

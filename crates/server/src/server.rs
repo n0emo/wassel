@@ -1,15 +1,12 @@
+use anyhow::Context as _;
 use hyper::server::conn::http1;
 use hyper_util::rt::{TokioIo, TokioTimer};
-use service::WasselService;
 use tokio::net::TcpListener;
 use tracing::{error, info};
 
-use crate::{config::Config, plugin::PluginPool};
+use wassel_plugin_stack::Stack;
 
-pub mod body;
-pub mod errors;
-pub mod response;
-pub mod service;
+use crate::config::Config;
 
 pub struct Server {
     config: Config,
@@ -21,8 +18,7 @@ impl Server {
     }
 
     pub async fn serve(&self) -> anyhow::Result<()> {
-        let pool = PluginPool::new(&self.config).await?;
-        let service = WasselService::new(pool);
+        let stack = Stack::load(".").await.context("Loading stack")?;
 
         let addr = format!(
             "{host}:{port}",
@@ -30,13 +26,15 @@ impl Server {
             port = &self.config.port
         );
         info!("Starting server at {addr}");
-        let listener = TcpListener::bind(addr).await?;
+        let listener = TcpListener::bind(&addr)
+            .await
+            .context("Binding to {addr}")?;
 
         loop {
-            let (tcp, _) = listener.accept().await?;
+            let (tcp, _) = listener.accept().await.context("Accepting connection")?;
             let io = TokioIo::new(tcp);
 
-            let service = service.clone();
+            let service = stack.clone();
 
             tokio::task::spawn(async move {
                 if let Err(e) = http1::Builder::new()
