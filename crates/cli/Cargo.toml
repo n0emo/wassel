@@ -9,6 +9,7 @@ wassel-server.workspace = true
 
 anyhow.workspace = true
 clap = { workspace = true, features = ["derive"] }
+rayon.workspace = true
 serde = { workspace = true, features = ["derive"] }
 subprocess.workspace = true
 subst.workspace = true

@@ -39,7 +39,7 @@ fn cmd_build(path: &Path) -> anyhow::Result<()> {
 }
 
 fn cmd_serve(path: &Path) -> anyhow::Result<()> {
-    let common::PluginBuildInfo { id, component } = common::build_plugin_at(path)?;
+    let common::PluginBuildInfo { id, component, .. } = common::build_plugin_at(path)?;
 
     let plugins_path = Path::new("plugins");
     let plugin_dir = plugins_path.join(id);

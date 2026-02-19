@@ -34,6 +34,7 @@ pub struct PluginMetaBuild {
 
 #[derive(Debug, Clone)]
 pub struct PluginBuildInfo {
+    pub path: PathBuf,
     pub id: String,
     pub component: PathBuf,
 }
@@ -94,6 +95,7 @@ pub fn build_plugin_at(path: &Path) -> anyhow::Result<PluginBuildInfo> {
     println!("Component built successfully at `{}`", component.display());
 
     Ok(PluginBuildInfo {
+        path: path.to_owned(),
         id: meta.id,
         component,
     })

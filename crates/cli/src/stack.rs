@@ -5,6 +5,7 @@ use std::{
 
 use anyhow::Context as _;
 use clap::{Args, Subcommand};
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator as _};
 
 use crate::common::{self, build_plugin_at};
 
@@ -60,16 +61,22 @@ fn build_entire_stack(path: &Path) -> anyhow::Result<()> {
 
     fs::create_dir_all(&plugins_path).context("Creating plugins directory")?;
 
-    for plugin_path in meta.stack.plugins {
-        let info =
-            build_plugin_at(&plugin_path).context(format!("Building plugin `{plugin_path:?}`"))?;
+    let infos = meta
+        .stack
+        .plugins
+        .par_iter()
+        .map(|path| build_plugin_at(path).context(format!("Building plugin `{path:?}`")))
+        .collect::<Result<Vec<_>, _>>()
+        .context("Building plugins")?;
+
+    for info in infos {
         let id = &info.id;
         let plugin_directory = plugins_path.join(id);
         fs::create_dir_all(&plugin_directory).context("Creating plugin directory")?;
         fs::copy(info.component, plugin_directory.join("plugin.wasm"))
             .context(format!("Copying plugin `{id}`"))?;
         fs::copy(
-            plugin_path.join("plugin.toml"),
+            info.path.join("plugin.toml"),
             plugin_directory.join("plugin.toml"),
         )
         .context(format!("Copying plugin metadata `{id}`"))?;
