@@ -66,7 +66,7 @@ impl StackInner {
             let plugin_path = &config.plugin_paths[&plugin_id];
             debug!("Loading `{}`", plugin_path.to_string_lossy());
 
-            let mut base_url = plugin_meta.base_url.clone();
+            let mut base_url = plugin_meta.endpoint.clone();
             if !base_url.ends_with('/') {
                 base_url += "/";
             }

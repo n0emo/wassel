@@ -21,8 +21,8 @@ pub struct PluginMeta {
     #[serde(default = "default_data_dir")]
     pub data_dir: PathBuf,
 
-    #[serde(default = "default_base_url")]
-    pub base_url: String,
+    #[serde(default = "default_endpoint")]
+    pub endpoint: String,
 }
 
 fn default_version() -> String {
@@ -33,6 +33,6 @@ fn default_data_dir() -> PathBuf {
     PathBuf::from_str("data").expect("`data` should be valid path")
 }
 
-fn default_base_url() -> String {
+fn default_endpoint() -> String {
     "/".to_owned()
 }

@@ -59,7 +59,11 @@ impl PluginImage {
     pub async fn instantiate(&self, engine: &Engine) -> anyhow::Result<PluginInstance> {
         let mut store = wasmtime::Store::new(engine, PluginState::new(&self.data_dir)?);
         let instance = self.pre.instantiate_async(&mut store).await?;
-        Ok(PluginInstance::new(instance, Mutex::new(store)))
+        Ok(PluginInstance::new(
+            instance,
+            Mutex::new(store),
+            self.meta.endpoint.clone(),
+        ))
     }
 
     pub fn id(&self) -> &str {
