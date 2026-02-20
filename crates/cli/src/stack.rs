@@ -70,16 +70,7 @@ fn build_entire_stack(path: &Path) -> anyhow::Result<()> {
         .context("Building plugins")?;
 
     for info in infos {
-        let id = &info.id;
-        let plugin_directory = plugins_path.join(id);
-        fs::create_dir_all(&plugin_directory).context("Creating plugin directory")?;
-        fs::copy(info.component, plugin_directory.join("plugin.wasm"))
-            .context(format!("Copying plugin `{id}`"))?;
-        fs::copy(
-            info.path.join("plugin.toml"),
-            plugin_directory.join("plugin.toml"),
-        )
-        .context(format!("Copying plugin metadata `{id}`"))?;
+        common::copy_plugin_to_plugins_folder(&plugins_path, &info)?;
     }
 
     Ok(())

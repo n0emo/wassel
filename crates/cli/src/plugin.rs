@@ -39,24 +39,18 @@ fn cmd_build(path: &Path) -> anyhow::Result<()> {
 }
 
 fn cmd_serve(path: &Path) -> anyhow::Result<()> {
-    let common::PluginBuildInfo { id, component, .. } = common::build_plugin_at(path)?;
+    let info = common::build_plugin_at(path)?;
 
     let plugins_path = Path::new("plugins");
-    let plugin_dir = plugins_path.join(id);
+    let plugin_dir = plugins_path.join(&info.id);
     if plugins_path.exists() {
         fs::remove_dir_all(plugins_path).context(format!(
             "Removing plugins directory at `{}`",
             plugin_dir.to_string_lossy()
         ))?;
     }
-    fs::create_dir_all(&plugin_dir).context(format!(
-        "Creating plugins directory at `{}`",
-        plugin_dir.to_string_lossy()
-    ))?;
-    fs::copy(component, plugin_dir.join("plugin.wasm"))
-        .context("Copying plugin.wasm to plugin directory")?;
-    fs::copy(path.join("plugin.toml"), plugin_dir.join("plugin.toml"))
-        .context("Copying plugin.toml to plugin directory")?;
+
+    common::copy_plugin_to_plugins_folder(plugins_path, &info)?;
 
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
